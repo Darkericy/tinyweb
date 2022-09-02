@@ -1,7 +1,8 @@
 #include "DK.h"
 
 void unix_error(const string& message){
-	cout << message << endl;
+	cout << message << ": ";
+	cout << strerror(errno) << endl;
 	exit(0);
 }
 
@@ -40,9 +41,9 @@ static ssize_t rio_read(rio_t *rp, char *usrbuf, size_t n){
 			rp->rio_bufptr = rp->rio_buf;
 	}
 	
-	cnt = min(n, rp->rio_cnt);
+	cnt = min(static_cast<int>(n), rp->rio_cnt);
 	memcpy(usrbuf, rp->rio_bufptr, cnt);
-	rp->rio_bufptr += cur;
+	rp->rio_bufptr += cnt;
 	rp->rio_cnt -= cnt;
 	return cnt;
 }
@@ -57,7 +58,7 @@ void rio_readinitb(rio_t *rp, int fd){
 ssize_t rio_writen(int fd, void *usrbuf, size_t n){
 	size_t nleft = n;
 	ssize_t nwritten;
-	char *bufp = usrbuf;
+	char *bufp = static_cast<char*>(usrbuf);
 	
 	while(nleft > 0){
 		if ((nwritten = write(fd, bufp, nleft)) <= 0) {
@@ -75,7 +76,7 @@ ssize_t rio_writen(int fd, void *usrbuf, size_t n){
 
 ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen){
 	int n, rc;
-	char c, *bufp = usrbuf;
+	char c, *bufp = static_cast<char*>(usrbuf);
 
 	for (n = 1; n < maxlen; ++n){
 		if ((rc = rio_read(rp, &c, 1)) == 1) {
@@ -100,7 +101,7 @@ ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen){
 ssize_t rio_readnb(rio_t *rp, void *usrbuf, size_t n){
 	size_t nleft = n;
 	ssize_t nread;
-	char *bufp = usrbuf;
+	char *bufp = static_cast<char*>(usrbuf);
 	
 	while (nleft > 0) {
 		if ((nread = rio_read(rp, bufp, nleft)) < 0)
@@ -123,7 +124,7 @@ void rio_Writen(int fd, void* usrbuf, size_t n){
         unix_error("Rio_writen error");
 }
 
-ssize_t rio_Readlineb(rio_t *rp, void *buf, size_t maxlen){
+ssize_t rio_Readlineb(rio_t *rp, void *usrbuf, size_t maxlen){
 	ssize_t rc;
 	
 	if ((rc = rio_readlineb(rp, usrbuf, maxlen)) < 0)
