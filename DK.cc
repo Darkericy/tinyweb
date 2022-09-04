@@ -12,7 +12,7 @@ void gai_error(int code, const string& message){
 	cerr << gai_strerror(code) << endl;
 }
 
-void app_error(char *msg) /* Application error */
+void app_error(const string& msg) /* Application error */
 {
     fprintf(stderr, "%s\n", msg);
     exit(0);
@@ -43,14 +43,14 @@ void Close(int fd){
 	int rc;
 	
 	if((rc = close(fd)) < 0){
-		unix_erro("close error");
+		unix_error("close error");
 	}
 }
 
 char *Fgets(char *ptr, int n, FILE *stream){
 	char *ret;
 
-	if((ret = fgets(ptr, n, stream)) == nullptr && ferror(stream)){
+	if((ret = fgets(ptr, n, stream)) == nullptr && ferror(stream))
 		app_error("fgets error");
 	return ret;
 }
