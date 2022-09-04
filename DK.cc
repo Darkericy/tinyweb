@@ -47,6 +47,21 @@ void Close(int fd){
 	}
 }
 
+char *Fgets(char *ptr, int n, FILE *stream){
+	char *ret;
+
+	if((ret = fgets(ptr, n, stream)) == nullptr && ferror(stream)){
+		app_error("fgets error");
+	return ret;
+}
+
+void Fputs(const char *ptr, FILE *stream)
+{
+    if (fputs(ptr, stream) == EOF)
+        unix_error("Fputs error");
+}
+
+
 /*健壮的IO包实现*/
 //这里的rio_read声明为静态函数就是向只作为这个文件的函数使用。
 static ssize_t rio_read(rio_t *rp, char *usrbuf, size_t n){
@@ -192,6 +207,14 @@ void Setsockopt(int s, int level, int optname, const void *optval, int optlen)
         unix_error("Setsockopt error");
 }
 
+int Accept(int s, struct sockaddr *addr, socklen_t *addrlen)
+{
+    int rc;
+
+    if ((rc = accept(s, addr, addrlen)) < 0)
+        unix_error("Accept error");
+    return rc;
+}
 
 /*服务器套接字接口辅助函数*/
 //基础函数实现,csapp下载的代码和书中的代码有略微的不同，下载下来的代码实现中调用下面两个函数会有以下两个情况：

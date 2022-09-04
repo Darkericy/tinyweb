@@ -41,6 +41,8 @@ void app_error(const string& msg);
 ssize_t Read(int fd, void *buf, int count);
 ssize_t Write(int fd, void *buf, int count);
 void Close(int fd);
+char *Fgets(char *ptr, int n, FILE *streami);
+void Fputs(const char *ptr, FILE *stream);
 
 /*健壮的IO包，携带输入输出缓冲，可以处理基础包的不足*/
 
@@ -61,6 +63,7 @@ void Getaddrinfo(const char* host, const char *service, const struct addrinfo *h
 void Freeaddrinfo(struct addrinfo *result);
 void Getnameinfo(const struct sockaddr *sa, socklen_t salen, char *host, size_t hostlen, char *service, size_t servlen, int flags);
 void Setsockopt(int s, int level, int optname, const void *optval, int optlen);
+int Accept(int s, struct sockaddr *addr, socklen_t *addrlen);
 
 /*服务器与客户端API*/
 //基础函数

@@ -15,4 +15,11 @@ int main(int argc, char **argv){
 	clientfd = Open_clientfd(host, port);
 	rio_Readinitb(&rio, clientfd);
 
-	while(Fgets(buf, MAXLINE, stdin) != NULL
+	while(Fgets(buf, MAXLINE, stdin) != nullptr){
+		rio_Written(clinedfd, buf, strlen(buf));
+		rio_Readlineb(&rio, buf, MAXLINE);
+		Fputs(buf, stdout);
+	}
+	Close(clientfd);
+	return 0;
+}
