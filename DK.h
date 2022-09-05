@@ -17,6 +17,7 @@
 
 #define RIO_BUFSIZE 8192
 #define MAXLINE 8192
+#define LISTENQ 1024
 
 typedef struct {
 	int rio_fd;

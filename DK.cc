@@ -10,12 +10,13 @@ void unix_error(const string& message){
 void gai_error(int code, const string& message){
 	cerr << message << ": ";
 	cerr << gai_strerror(code) << endl;
+	exit(0);
 }
 
 void app_error(const string& msg) /* Application error */
 {
-    fprintf(stderr, "%s\n", msg);
-    exit(0);
+	cerr << msg << endl;
+	exit(0);
 }
 
 
@@ -185,17 +186,16 @@ void Getaddrinfo(const char* host, const char *service, const struct addrinfo *h
 	if((rc = getaddrinfo(host, service, hints, result)) != 0 ){
 		gai_error(rc, "getaddrinfo error");
 	}
-	return rc;
 }
 
 void Freeaddrinfo(struct addrinfo *result){
-	freeadrinfo(result);
+	freeaddrinfo(result);
 }
 
 void Getnameinfo(const struct sockaddr *sa, socklen_t salen, char *host, size_t hostlen, char *service, size_t servlen, int flags){
 	int rc;
 
-	if((rc = getnameinfo(sa, salen, host, hostlen, service, sevlen, flags)) != 0)
+	if((rc = getnameinfo(sa, salen, host, hostlen, service, servlen, flags)) != 0)
 		gai_error(rc, "getnameinfo error");
 }
 
@@ -257,14 +257,14 @@ int open_clientfd(char *hostname, char *port){
 
 int open_listenfd(char *port){
 	struct addrinfo hints, *listp, *p;
-	int lintenfd, optval = 1;
+	int listenfd, optval = 1;
 	
 	//初始化和上面函数一样的操作
 	memset(&hints, 0, sizeof(struct addrinfo));
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE | AI_ADDRCONFIG;
 	hints.ai_flags |= AI_NUMERICSERV;
-	Getaddrinfo(NULL, port, &hints, &listp);
+	Getaddrinfo(nullptr, port, &hints, &listp);
 
 	for(p = listp; p; p = p->ai_next){
 		if((listenfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) < 0)
