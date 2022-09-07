@@ -3,13 +3,16 @@
 
 #include <errno.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/mman.h>
 #include <netdb.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <iostream>
 #include <string>
+#include <sstream>
 #include <stdlib.h>
 #include <algorithm>
 #include <cstring>
@@ -44,6 +47,8 @@ ssize_t Write(int fd, void *buf, int count);
 void Close(int fd);
 char *Fgets(char *ptr, int n, FILE *streami);
 void Fputs(const char *ptr, FILE *stream);
+int Open(const char *pathname, int flags, mode_t mode);
+
 
 /*健壮的IO包，携带输入输出缓冲，可以处理基础包的不足*/
 
@@ -74,5 +79,15 @@ int open_listenfd(char *port);
 //接口
 int Open_clientfd(char *hostname, char *port);
 int Open_listenfd(char *port);
+
+//内存管理函数
+void *Mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset);
+void Munmap(void *start, size_t length);
+
+//进程相关函数
+pid_t Fork();
+int Dup2(int fd1, int fd2);
+void Execve(const char *filename, char *const argv[], char *const envp[]);
+pid_t Wait(int *status);
 
 #endif

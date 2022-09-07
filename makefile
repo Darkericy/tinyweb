@@ -1,3 +1,6 @@
+tiny: tiny.cc ./libDK.so
+	g++ -std=c++11 -o tiny tiny.cc ./libDK.so
+
 dkfile : dkfile.cc ./libDK.so
 	g++ -std=c++11 -o dkfile dkfile.cc ./libDK.so
 

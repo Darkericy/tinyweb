@@ -62,6 +62,15 @@ void Fputs(const char *ptr, FILE *stream)
         unix_error("Fputs error");
 }
 
+int Open(const char *pathname, int flags, mode_t mode)
+{
+    int rc;
+
+    if ((rc = open(pathname, flags, mode))  < 0)
+        unix_error("Open error");
+    return rc;
+}
+
 
 /*健壮的IO包实现*/
 //这里的rio_read声明为静态函数就是向只作为这个文件的函数使用。
@@ -305,4 +314,54 @@ int Open_listenfd(char *port){
 	if((rc = open_listenfd(port)) < 0)
 		unix_error("open_listenfd error");
 	return rc;
+}
+
+//内存管理函数实现
+void *Mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset)
+{
+    void *ptr;
+
+    if ((ptr = mmap(addr, len, prot, flags, fd, offset)) == (reinterpret_cast<void*>(-1)))
+        unix_error("mmap error");
+    return(ptr);
+}
+
+void Munmap(void *start, size_t length)
+{
+    if (munmap(start, length) < 0)
+        unix_error("munmap error");
+}
+
+//进程相关函数
+pid_t Fork(void)
+{
+    pid_t pid;
+
+    if ((pid = fork()) < 0)
+        unix_error("Fork error");
+    return pid;
+}
+
+int Dup2(int fd1, int fd2)
+{
+    int rc;
+
+    if ((rc = dup2(fd1, fd2)) < 0)
+        unix_error("Dup2 error");
+    return rc;
+}
+
+void Execve(const char *filename, char *const argv[], char *const envp[])
+{
+    if (execve(filename, argv, envp) < 0)
+        unix_error("Execve error");
+}
+
+pid_t Wait(int *status)
+{
+    pid_t pid;
+
+    if ((pid  = wait(status)) < 0)
+        unix_error("Wait error");
+    return pid;
 }
