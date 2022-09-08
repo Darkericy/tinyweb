@@ -81,16 +81,16 @@ void doit(int fd){
 
 void clienterror(int fd, const string& cause, const string& errnum, const string& shortmsg, const string& longmsg){
 	string buf = "", body = "";
-	buf += "<html><title>错误！</title>";
-	buf += "<p>发生了错误，错误代号：" + errnum + "\r\n";
-	buf += "<p>错误信息：" + longmsg + "\r\n";
-	buf += "<hr><em>服主太懒了就写了两行错误信息</em>\r\n";
+	body += "<html><meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" /><title>错误！</title>\r\n";
+	body += "<p>发生了错误，错误代号：" + errnum + "\r\n";
+	body += "<p>错误信息：" + longmsg + "\r\n";
+	body += "<hr><em>服主太懒了就写了两行错误信息</em>\r\n";
 
-	buf = "HTTP/1.0 " + errnum + shortmsg;
+	buf = "HTTP/1.0 " + errnum + " " + shortmsg + "\r\n";
 	rio_Writen(fd, const_cast<char*>(buf.c_str()), buf.size());
 	buf = "Content-type: text/html\r\n";
 	rio_Writen(fd, const_cast<char*>(buf.c_str()), buf.size());
-	buf = "Content-length: " + to_string(body.size()) +"\r\n\r\n";
+	buf = "Content-length: " + to_string(body.size()) + "\r\n\r\n";
 	rio_Writen(fd, const_cast<char*>(buf.c_str()), buf.size());
 	rio_Writen(fd, const_cast<char*>(body.c_str()), body.size());
 }
@@ -112,8 +112,8 @@ bool parse_uri(string& uri, string& filename, string& cgiargs){
 		filename = "." + uri;
 		if(uri.size() == 1 && uri[0] == '/'){
 			filename += "home.html";
-		return true;
 		}
+		return true;
 	}else{
 		auto ptr = uri.find('?');
 		if(ptr != string::npos){
