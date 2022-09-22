@@ -17,10 +17,16 @@
 #include <algorithm>
 #include <cstring>
 #include <stdio.h>
+#include <unordered_map>
+#include <vector>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+using namespace std;
 
-#define RIO_BUFSIZE 8192
-#define MAXLINE 8192
-#define LISTENQ 1024
+const int RIO_BUFSIZE = 8192;
+const int MAXLINE = 8192;
+const int LISTENQ = 1024;
 
 typedef struct {
 	int rio_fd;
@@ -28,6 +34,7 @@ typedef struct {
 	char *rio_bufptr;
 	char rio_buf[RIO_BUFSIZE];
 } rio_t;
+
 
 typedef struct sockaddr SA;
 typedef long ssize_t;
@@ -89,5 +96,85 @@ pid_t Fork();
 int Dup2(int fd1, int fd2);
 void Execve(const char *filename, char *const argv[], char *const envp[]);
 pid_t Wait(int *status);
+
+//重点处理网页请求的类
+class Mission {
+	using Action = void (Mission::*)(const string&);
+private:
+	//这个method用来保存不同请求方法对应的函数
+	unordered_map<string, Action> method;
+	//conned是初始化的连接描述符
+	int conned;
+	
+	//此函数用来处理错误
+	void error(const string& errcode, const string& errmsg);
+	
+	//处理函数
+	bool parse_uri(const string& uri, string& filename, string& cgiargs);
+	void serve_static(string& filename, int filesize);
+	void serve_dynamic(string& filename, string& cgiargs);
+	void get_filetype(string& filename, string& filetype);
+	void read_requesthdrs(rio_t *rp);
+	
+	//方法分类
+	void Get(const string& uri);
+	void Head(const string& uri);
+	void Post(const string& uri);
+	void Put(const string& uri);
+	void Delete(const string& uri);
+	void Connect(const string& uri);
+	void Options(const string& uri);
+	void Trace(const string& uri);
+	
+public:
+	Mission(int connect):conned(connect) 
+	{
+		method["GET"] = &Mission::Get;
+        	method["HEAD"] = &Mission::Head;
+        	method["POST"] = &Mission::Post;
+        	method["PUT"] = &Mission::Put;
+        	method["DELETE"] = &Mission::Delete;
+        	method["CONNECT"] = &Mission::Connect;
+        	method["OPTIONS"] = &Mission::Options;
+        	method["TRACE"] = &Mission::Trace;
+	};
+	
+	//析构函数，保证描述符正确关闭
+	
+	~Mission(){
+		Close(conned);
+	};	
+
+	//明确删除我不需要的函数
+	Mission() = delete;
+	Mission(const Mission&) = delete;
+	Mission& operator=(const Mission&) = delete;
+
+	//这个函数就是处理网页请求的主体
+	void start();
+};
+
+//生产者消费者模型的缓冲区实现
+//使用循环队列模型外加多线程操作
+class sbuf{
+private:
+	vector<int> buf; //保存描述符的
+	int maxlen; //最大容量
+	int front, tail; //头指针尾指针
+	mutex mtx;
+	condition_variable cnd;	
+
+public:
+	sbuf(int max): maxlen(max), buf(max + 1), front(0), tail(0) {};
+	~sbuf() = default;
+	
+	//明确删除我不需要的函数
+	sbuf(const sbuf&) = delete;
+	sbuf& operator=(const sbuf&) = delete;
+
+	//向数组中插入删除描述符
+	void insert(int conned);
+	int get();
+};
 
 #endif

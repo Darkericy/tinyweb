@@ -365,3 +365,189 @@ pid_t Wait(int *status)
         unix_error("Wait error");
     return pid;
 }
+
+//Mission方法实现
+void Mission::error(const string& errcode, const string& errmsg){
+	string buf = "", body = "";
+        body += "<html><meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" /><title>错误！</title>\r\n";
+        body += "<p>发生了错误，错误代号：" + errcode + "\r\n";
+        body += "<p>错误信息：" + errmsg + "\r\n";
+        body += "<hr><em>服主太懒了就写了两行错误信息</em>\r\n";
+
+        buf = "HTTP/1.0 " + errcode + " " + errmsg + "\r\n";
+        rio_Writen(conned, const_cast<char*>(buf.c_str()), buf.size());
+        buf = "Content-type: text/html\r\n";
+        rio_Writen(conned, const_cast<char*>(buf.c_str()), buf.size());
+        buf = "Content-length: " + to_string(body.size()) + "\r\n\r\n";
+        rio_Writen(conned, const_cast<char*>(buf.c_str()), buf.size());
+        rio_Writen(conned, const_cast<char*>(body.c_str()), body.size());
+}
+bool Mission::parse_uri(const string& uri, string& filename, string& cgiargs){
+	if(uri.find("cgi_bin") == string::npos){
+                cgiargs = "";
+                filename = "." + uri;
+                if(uri.size() == 1 && uri[0] == '/'){
+                        filename += "home.html";
+                }
+                return true;
+        }else{
+                auto ptr = uri.find('?');
+                if(ptr != string::npos){
+                        cgiargs = uri.substr(ptr + 1);
+                }else{
+                        cgiargs = "";
+                        ptr = uri.size();
+                }
+                filename = "." + uri.substr(0, ptr);
+                return false;
+        }
+}
+void Mission::serve_static(string& filename, int filesize){
+	int srcfd;
+        char *srcp;
+        string filetype, buf = "";
+
+        get_filetype(filename, filetype);
+        buf += "HTTP/1.0 200 OK\r\n";
+        buf += "Server: Tiny Web Server\r\n";
+        buf += "Connection: close\r\n";
+        buf += "Content-length: " + to_string(filesize) + "\r\n";
+        buf += "Content-type: " + filetype + "\r\n\r\n";
+        rio_Writen(conned, const_cast<char*>(buf.c_str()), buf.size());
+        cout << "响应报头：" << endl;
+        cout << buf;
+
+        srcfd = Open(filename.c_str(), O_RDONLY, 0);
+        srcp =  static_cast<char*>(Mmap(nullptr, filesize, PROT_READ, MAP_PRIVATE, srcfd, 0));
+        Close(srcfd);
+        rio_Writen(conned, srcp, filesize);
+        Munmap(srcp, filesize);
+}
+void Mission::serve_dynamic(string& filename, string& cgiargs){
+	string buf = "";
+        char *emptylist[] = {nullptr};
+        buf = "HTTP/1.0 200 OK\r\n";
+        rio_Writen(conned, const_cast<char*>(buf.c_str()), buf.size());
+        buf = "Server: Tiny Web Server\r\n";
+        rio_Writen(conned, const_cast<char*>(buf.c_str()), buf.size());
+
+        if(Fork() == 0){
+                setenv("QUERY_STRING", cgiargs.c_str(), 1);
+                Dup2(conned, STDOUT_FILENO);
+                Execve(filename.c_str(), emptylist, environ);
+        }
+        Wait(nullptr);
+}
+void Mission::get_filetype(string& filename, string& filetype){
+	if(filename.find(".html") != string::npos)
+                filetype = "text/html";
+        else if(filename.find(".gif") != string::npos)
+                filetype = ".image/gif";
+        else if(filename.find(".png") != string::npos)
+                filetype = "image/png";
+        else if(filename.find(".jpg") != string::npos)
+                filetype = "image/jpeg";
+        else
+                filetype = "text/plain";
+}
+void Mission::start(){
+        char buf[MAXLINE];
+        rio_t rio;
+        rio_Readinitb(&rio, conned);
+        rio_Readlineb(&rio, buf, MAXLINE);
+        cout << "请求报头：" << endl;
+        cout << buf;
+
+        string usrbuf(buf);
+        istringstream input(usrbuf);
+        string me, uri, version;
+        input >> me >> uri >> version;
+	read_requesthdrs(&rio);
+        (this->*method[me])(uri);
+}
+void Mission::read_requesthdrs(rio_t *rp){
+	char buf[MAXLINE];
+
+        rio_Readlineb(rp, buf, MAXLINE);
+        while(strcmp(buf, "\r\n")){
+                rio_Readlineb(rp, buf, MAXLINE);
+                cout << buf;
+        }
+        return;
+}
+void Mission::Get(const string& uri){
+	string errcode, errmsg;
+	string filename, cgiargs;
+        struct stat sbuf;
+        auto is_static = parse_uri(uri, filename, cgiargs);
+        if(stat(filename.c_str(), &sbuf) < 0){
+                errcode = "404", errmsg = "未找到同名文件";
+                error(errcode, errmsg);
+                return;
+        }
+
+        if(is_static){
+                if(!(S_ISREG(sbuf.st_mode)) || !(S_IRUSR & sbuf.st_mode)){
+                        errcode = "403", errmsg = "无权限查看";
+                        error(errcode, errmsg);
+                        return;
+                }
+                serve_static(filename, sbuf.st_size);
+        }
+        else{
+                if(!(S_ISREG(sbuf.st_mode)) || !(S_IXUSR & sbuf.st_mode)){
+                        errcode = "403", errmsg = "无权限执行";
+                        error(errcode, errmsg);
+                        return;
+                }
+                serve_dynamic(filename, cgiargs);
+        }
+}
+void Mission::Head(const string& uri){
+	string errcode = "501", errmsg = "未实现";
+	error(errcode, errmsg);	
+}
+void Mission::Post(const string& uri){
+	string errcode = "501", errmsg = "未实现";    
+        error(errcode, errmsg);
+
+}
+void Mission::Put(const string& uri){
+	string errcode = "501", errmsg = "未实现";    
+        error(errcode, errmsg);
+}
+void Mission::Delete(const string& uri){
+	string errcode = "501", errmsg = "未实现";    
+        error(errcode, errmsg);
+}
+void Mission::Connect(const string& uri){
+	string errcode = "501", errmsg = "未实现";    
+        error(errcode, errmsg);
+}
+void Mission::Options(const string& uri){
+	string errcode = "501", errmsg = "未实现";    
+        error(errcode, errmsg);
+}
+void Mission::Trace(const string& uri){
+	string errcode = "501", errmsg = "未实现";    
+        error(errcode, errmsg);
+}
+
+//sbuf函数实现
+void sbuf::insert(int conned){
+	unique_lock<mutex> locker(mtx);
+	cnd.wait(locker, [this](){ return (tail + 1) % (maxlen + 1) != front; });
+	buf[tail] = conned;
+	++tail;
+	tail %= (maxlen + 1);
+	cnd.notify_all();
+}
+int sbuf::get(){
+	unique_lock<mutex> locker(mtx);
+	cnd.wait(locker, [this](){ return tail != front;});
+	int ret = buf[front];
+	++front;
+	front %= (maxlen + 1);
+	cnd.notify_all();
+	return ret;
+}
