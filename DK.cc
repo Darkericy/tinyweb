@@ -433,7 +433,7 @@ void Mission::serve_dynamic(string& filename, string& cgiargs){
 
         if(Fork() == 0){
                 setenv("QUERY_STRING", cgiargs.c_str(), 1);
-                Dup2(conned, STDOUT_FILENO);
+		Dup2(conned, STDOUT_FILENO);
                 Execve(filename.c_str(), emptylist, environ);
         }
         Wait(nullptr);
@@ -540,7 +540,7 @@ void sbuf::insert(int conned){
 	buf[tail] = conned;
 	++tail;
 	tail %= (maxlen + 1);
-	cnd.notify_all();
+	cnd.notify_one();
 }
 int sbuf::get(){
 	unique_lock<mutex> locker(mtx);
@@ -548,6 +548,6 @@ int sbuf::get(){
 	int ret = buf[front];
 	++front;
 	front %= (maxlen + 1);
-	cnd.notify_all();
+	cnd.notify_one();
 	return ret;
 }

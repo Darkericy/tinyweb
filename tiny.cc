@@ -21,31 +21,24 @@ int main(int argc, char **argv){
 		exit(1);
 	}
 
-	//创建线程池	
 	for(int i = 0; i < 4; ++i){
 		thread temp(doit, 1);
-		//cout << "创建一个线程" << endl;
 		temp.detach();
 	}
 
-	//cout << "到达监听描述符之前" << endl;
 	listenfd = Open_listenfd(argv[1]);
 	while(1){
-		//cout << "准备监听" << endl;
 		clientlen = sizeof(clientaddr);
 		connfd = Accept(listenfd, reinterpret_cast<SA *>(&clientaddr), &clientlen);
-		//cout << "获得描述符：" << connfd << endl;
 		Getnameinfo(reinterpret_cast<SA *>(&clientaddr), clientlen, hostname, MAXLINE, port, MAXLINE, 0);
 		cout << "连接到：" << hostname << " " << port << " ";
 		usr_buf.insert(connfd);
-		//cout << "插入描述符成功" << endl;
 	}
 	return 0;
 }
 
 void doit(int _){
 	while(1){
-		//cout << "这里是子线程" << endl;
 		int temp = usr_buf.get();
 		Mission cur_m(temp);
 		cur_m.start();

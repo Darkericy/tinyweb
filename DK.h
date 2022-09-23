@@ -22,6 +22,7 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include <chrono>
 using namespace std;
 
 const int RIO_BUFSIZE = 8192;
